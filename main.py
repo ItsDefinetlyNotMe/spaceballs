@@ -6,8 +6,9 @@ from SpaceBalls import SpaceBall
 @click.argument('mode', type=click.Choice(['editor', 'plot'], case_sensitive=False))
 @click.argument('path', type=click.Path(exists=True, dir_okay=True, readable=True))
 @click.option('-p', '--printd', is_flag=True, help="Flag for printing details (used when 'plot' mode is selected)")
-def main(mode, path, printd):
-    VM = SpaceBall()
+@click.option('-e', '--epsilon', type=float, help="time between collisions")
+def main(mode, path, printd, epsilon):
+    VM = SpaceBall(epsilon)
     if mode == 'editor':
         if not os.path.exists(path):
             click.echo("Path not found opening empty File.")

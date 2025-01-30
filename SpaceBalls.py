@@ -5,7 +5,6 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from tkinter import filedialog
 import copy
 
-
 class Movable():
     def __init__(self, velocity, position):
         self.velocity = velocity
@@ -29,13 +28,14 @@ class Ball(Movable):
 
 class SpaceBall():
     
-    def __init__(self):
+    def __init__(self, epsilon=0.0001):
         self.ball = None
         self.original_ball = None
         self.planets = None
         self.sequences = None
         self.active_sequence = None
         self.history = None
+        self.epsilon = epsilon
 
     def add_scene(self, path):
         """Prepares objects described in scene file for simulation"""
@@ -102,7 +102,7 @@ class SpaceBall():
 
     def is_collision_possible(self, m1:Movable, m2:Movable)->bool:
         """Determins if a collision is possible at the end of the active sequence"""
-        return self.time_of_collision(m1, m2) > self.history[self.active_sequence][-1][2]
+        return self.time_of_collision(m1, m2) >= self.history[self.active_sequence][-1][2] + self.epsilon
 
     def collision(self, planet):
         """adjusts the stats of the ball according to the collision"""
