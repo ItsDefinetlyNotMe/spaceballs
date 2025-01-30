@@ -4,13 +4,6 @@ from tkinter import scrolledtext
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from tkinter import filedialog
 import copy
-from enum import Enum
-
-class UI(Enum):
-    FIGURE = "figure"
-    CANVAS = "canvas"
-    CANVAS_SIZE= "canvas_size"
-    CANVAS_PLOT = "canvas_plot"
 
 
 class Movable():
@@ -43,9 +36,9 @@ class SpaceBall():
         self.sequences = None
         self.active_sequence = None
         self.history = None
-        self._ui = {}
 
     def add_scene(self, path):
+        """Prepares objects described in scene file for simulation"""
         with open(path, 'r') as f:
             lines = f.readlines()
             ball, planets, sequences, _, _ = self.parser(lines)
@@ -58,6 +51,21 @@ class SpaceBall():
             self.history[str(seq)] = [(ball.velocity, ball.position, 0)]
 
     def parser(self, scene):
+        """Parses .scene files
+        
+        Returns:
+        --------
+        Ball
+            Ball object described in scene.
+        [Planet]
+            List of Planet objects described in the scene
+        [[string]]
+            List of all sequences described in the scene
+        [int]
+            List of all lines in which a scene is specified
+        [int]
+            List of all lines which are comments
+            """
         planets = {}
         ball = None
         sequences = []
@@ -89,17 +97,21 @@ class SpaceBall():
         return ball, planets, sequences, seq_line, comments
 
     def time_of_collision(self, m1:Movable, m2:Movable):
+        """returns time of collision between two objects"""
         return -(m1.position-m2.position)/(m1.velocity-m2.velocity)
 
     def is_collision_possible(self, m1:Movable, m2:Movable)->bool:
+        """Determins if a collision is possible at the end of the active sequence"""
         return self.time_of_collision(m1, m2) > self.history[self.active_sequence][-1][2]
 
-    def collision(self, planet):#wrong way around ?
+    def collision(self, planet):
+        """adjusts the stats of the ball according to the collision"""
         time = self.time_of_collision(self.ball, planet)
         self.ball.collision(planet)
         self.history[self.active_sequence].append((self.ball.velocity, self.ball.position, time))
 
     def play_sequence(self, seq):
+        """Creates a history by simulating a sequence"""
         self.active_sequence = str(seq)
         self.ball = copy.deepcopy(self.original_ball)
         self.history[self.active_sequence] = [(self.ball.velocity, self.ball.position, 0)]
@@ -144,6 +156,14 @@ class SpaceBall():
         return valid_planets
 
     def plot_plot(self):
+        """
+        Plots all sequences
+
+        Returns:
+        --------
+        figure
+            plt.figure of all sequences 
+        """
         fig, axes = plt.subplots(3, len(self.sequences), figsize=(5* len(self.sequences), 12))
 
         for idx, seq in enumerate(self.sequences):
@@ -216,9 +236,11 @@ class SpaceBall():
         return fig
 
     def show(self):
+        """Shows current Plot"""
         plt.show()
 
     def print_details(self):
+        """prints History of all sequences in terminal"""
         for key, history in self.history.items():
             print(f"Sequence: {key}")
             seq = key[1:-1:].split(',')
@@ -235,6 +257,7 @@ class SpaceBall():
         raise NotImplementedError
 
     def update_plot(self, canvas, fig):
+        """Updates the plot in the UI"""
         for widget in canvas.winfo_children():
             widget.destroy()
         if fig:
