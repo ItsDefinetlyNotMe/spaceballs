@@ -1,0 +1,9 @@
+Ball 2 3
+Planet -39 5 S
+Planet -40 5 S2
+Planet -62 0 R
+Planet 20 -50 A
+Planet 0 -30 B
+Planet 0 20 C
+Sequence S,R,A,B,A,B,A,B,A,B,A,B,S,B,A,B,A,C
+Sequence S2,R,A,B,A,B,A,B,A,B,A,B,S2,B,A,B,A,C
