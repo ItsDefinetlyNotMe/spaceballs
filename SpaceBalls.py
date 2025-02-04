@@ -265,10 +265,15 @@ class SpaceBall():
             canvas_plot.draw()
             canvas_plot.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
 
+    
+
+
     def add_live_scene(self, path=None):
         """Tkinter interface with real-time plot update"""
         root = tk.Tk()
         root.title("SpaceBall Scene Editor")
+
+        root.bind("<Destroy>", lambda event: plt.close(self.figure))
 
         text_frame = tk.Frame(root)
         text_frame.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
@@ -353,10 +358,13 @@ class SpaceBall():
 
 
         if path is not None:
+            print("opening")
             with open(path,'r') as f:
                 text_box.insert(tk.END, "".join(f.readlines()))
             on_text_change()
             ui_plot()
+            print("closing")
+
 
         text_box.bind("<KeyRelease>", on_text_change)
 

@@ -4,10 +4,12 @@ from SpaceBalls import SpaceBall
 
 @click.command()
 @click.argument('mode', type=click.Choice(['editor', 'plot'], case_sensitive=False))
-@click.argument('path', type=click.Path(exists=True, dir_okay=True, readable=True))
+@click.argument('path', type=click.Path(dir_okay=True, readable=True))
 @click.option('-p', '--printd', is_flag=True, help="Flag for printing details (used when 'plot' mode is selected)")
 @click.option('-e', '--epsilon', type=float, help="time between collisions")
 def main(mode, path, printd, epsilon):
+    if epsilon is None:
+        epsilon = 0.0001
     VM = SpaceBall(epsilon)
     if mode == 'editor':
         if not os.path.exists(path):
