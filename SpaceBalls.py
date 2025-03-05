@@ -5,22 +5,30 @@ from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from tkinter import filedialog
 import copy
 
+COLORS = ['b','g','r','c','m','y','k','w','blue','green','red','cyan','magenta','yellow','black','white','orange','purple','pink']
+
 class Movable():
-    def __init__(self, velocity, position):
+    def __init__(self, velocity, position, color='r'):
         self.velocity = velocity
-        self.position = position 
+        self.position = position
+        if color in COLORS:
+            self.color = color
+        else:
+            self.color = 'r'
 
     def __str__(self):
         return f"position: {self.position}, velocity {self.velocity}"
 
 class Planet(Movable):
-    def __init__(self, velocity, position):
-        super().__init__(velocity, position)
+    def __init__(self, velocity, position, color='r'):
+        super().__init__(velocity, position, color)
 
 
 class Ball(Movable):
     def __init__(self, velocity, position):
         super().__init__(velocity, position)
+        self.color = 'b'
+
     
     def collision(self, planet:Planet):
         self.velocity = 2 * planet.velocity - self.velocity
@@ -28,7 +36,7 @@ class Ball(Movable):
 
 class SpaceBall():
     
-    def __init__(self, epsilon=0.0001):
+    def __init__(self, epsilon, arguments):
         self.ball = None
         self.original_ball = None
         self.planets = None
@@ -36,6 +44,7 @@ class SpaceBall():
         self.active_sequence = None
         self.history = None
         self.epsilon = epsilon
+        self.arguments = arguments
 
     def add_scene(self, path):
         """Prepares objects described in scene file for simulation"""
@@ -92,7 +101,11 @@ class SpaceBall():
                     ball = Ball(velocity, position)    
                 elif arguments[0] == 'Planet':
                     name = arguments[3]
-                    planets[name] = Planet(velocity, position)
+                    if len(arguments) == 5:
+                        color = arguments[4]
+                        planets[name] = Planet(velocity, position, color)
+                    else:
+                        planets[name] = Planet(velocity, position)
 
         return ball, planets, sequences, seq_line, comments
 
@@ -164,7 +177,32 @@ class SpaceBall():
         figure
             plt.figure of all sequences 
         """
-        fig, axes = plt.subplots(3, len(self.sequences), figsize=(5* len(self.sequences), 12))
+
+        def get_axis(seq_amount, plot_amount):
+            if seq_amount == 1 and plot_amount == 1:
+                return axes
+
+            if self.arguments['r']:
+                if plots == 1:
+                    return axes[idx]
+                elif self.sequences == 1:
+                    return axes[counter]
+                else:
+                    return axes[idx, counter]
+
+            if seq_amount == 1:
+                return axes[counter]
+            elif plots == 1:
+                return axes[idx]
+            else:
+                return axes[counter, idx]
+            
+
+        plots = [self.arguments['p'], self.arguments['d'], self.arguments['s'], self.arguments['v']].count(True)
+        if self.arguments['r']:
+            fig, axes = plt.subplots(len(self.sequences), plots, figsize=(5*plots, 5*len(self.sequences)))
+        else:
+            fig, axes = plt.subplots(plots, len(self.sequences), figsize=(5*len(self.sequences), 5*plots))
 
         for idx, seq in enumerate(self.sequences):
             ac_seq = str(seq)
@@ -179,64 +217,96 @@ class SpaceBall():
                 last_time = timestamps[-1]
                 planet_time = [0, last_time]
 
-                #Plot 1
-                if len(self.sequences) == 1:
-                    ax1 = axes[0]
-                    ax2 = axes[1]
-                    ax3 = axes[2]
-                else:
-                    ax1 = axes[0, idx]
-                    ax2 = axes[1, idx]
-                    ax3 = axes[2, idx]
+                counter = 0
+                #what if len(sequence) and plots == 1? / what if len(seq)==0
+                if self.arguments['p']:
+                    ax1 = get_axis(len(self.sequences), plots)
+                    
+                    counter += 1
+                    for x in self.arguments['hx']:
+                        ax1.axvline(x=x, color='green', linestyle=':', linewidth=2)
+                    #Plot 1
+                    ax1.plot(timestamps, pwt, linestyle='-', color='b')
+                    
 
-                ax1.plot(timestamps, pwt, linestyle='-', color='b')
+                    for planet in self.planets.keys():
+                        position = self.planets[planet].position
+                        vel = self.planets[planet].velocity
+                        pos = [position, position + vel*last_time]
+                        ax1.plot(planet_time, pos, linestyle='-', color=self.planets[planet].color)
 
-                for planet in self.planets.keys():
-                    position = self.planets[planet].position
-                    vel = self.planets[planet].velocity
-                    pos = [position, position + vel*last_time]
-                    ax1.plot(planet_time, pos, linestyle='-', color='r')
+                    ax1.set_xlabel('Time (seconds)')
+                    ax1.set_ylabel('Position')
+                    ax1.set_title(f'Sequence {idx+1}: Position vs Time')
+                    ax1.grid(True)
+                    ax1.annotate(r'$t_{\text{end}}=$' + f'{round(timestamps[-1],3)}', xy=(0.95, 0.05), xycoords='axes fraction',ha='right',va='bottom')
+                    ax1.annotate(r'$p_{\text{end}}=$' + f'{round(pwt[-1],3)}', xy=(0.95, 0.00), xycoords='axes fraction',ha='right',va='bottom')
+                    if self.arguments['my'] is not None:
+                        ax1.set_ylim(top=self.arguments['my'])
 
-                ax1.set_xlabel('Time (seconds)')
-                ax1.set_ylabel('Position')
-                ax1.set_title(f'Sequence {idx+1}: Position vs Time')
-                ax1.grid(True)
-                ax1.annotate(r'$t_{\text{end}}=$' + f'{round(timestamps[-1],3)}', xy=(0.95, 0.05), xycoords='axes fraction',ha='right',va='bottom')
-                ax1.annotate(r'$p_{\text{end}}=$' + f'{round(pwt[-1],3)}', xy=(0.95, 0.00), xycoords='axes fraction',ha='right',va='bottom')
+                if self.arguments['d']:
+                    ax2 = get_axis(len(self.sequences), plots)
+                    
+                    for x in self.arguments['hx']:
+                        ax2.axvline(x=x, color='green', linestyle=':', linewidth=2)
+                    
+                    counter += 1
+                    #Plot 2
+                    cummulative_position = []
+                    prepos = pwt[0]
+                    for i,p in enumerate(pwt):
+                        distance = abs(p - prepos)
+                        prepos = p
+                        if i == 0:
+                            cummulative_position.append(distance)
+                            continue
+                        cummulative_position.append(cummulative_position[-1] + distance)
+                    ax2.plot(timestamps, cummulative_position, linestyle='-', color='b')
 
-                #Plot 2
-                cummulative_position = []
-                prepos = pwt[0]
-                for i,p in enumerate(pwt):
-                    distance = abs(p - prepos)
-                    prepos = p
-                    if i == 0:
-                        cummulative_position.append(distance)
-                        continue
-                    cummulative_position.append(cummulative_position[-1] + distance)
-                ax2.plot(timestamps, cummulative_position, linestyle='-', color='b')
+                    ax2.set_xlabel('Time (seconds)')
+                    ax2.set_ylabel('Distance')
+                    ax2.set_title(f'Sequence {idx+1}: Distance vs Time')
+                    ax2.grid(True)
+                    ax2.annotate(r'$s_{\text{end}}=$' + f'{round(cummulative_position[-1],3)}', xy=(0.95, 0.05), xycoords='axes fraction',ha='right',va='bottom')
 
-                ax2.set_xlabel('Time (seconds)')
-                ax2.set_ylabel('Distance')
-                ax2.set_title(f'Sequence {idx+1}: Distance vs Time')
-                ax2.grid(True)
-                ax2.annotate(r'$s_{\text{end}}=$' + f'{round(cummulative_position[-1],3)}', xy=(0.95, 0.05), xycoords='axes fraction',ha='right',va='bottom')
+                if self.arguments['v']:
+                    ax3 = get_axis(len(self.sequences), plots)
+  
+                    for x in self.arguments['hx']:
+                        ax3.axvline(x=x, color='green', linestyle=':', linewidth=2)
+  
+                    counter += 1
+                    #Plot 3
+                    ax3.step(timestamps, velocity, where='post', linestyle='-', color='b')
 
-                #Plot 3
-                ax3.step(timestamps, velocity, where='post', linestyle='-', color='b')
+                    ax3.set_xlabel('Time (seconds)')
+                    ax3.set_ylabel('Velocity')
+                    ax3.set_title(f'Sequence {idx+1}: velocity vs Time')
+                    ax3.grid(True)
+                    ax3.annotate(r'$v_{\text{end}}=$' + f'{round(velocity[-1],3)}', xy=(0.95, 0.05), xycoords='axes fraction',ha='right',va='bottom')
+                
+                if self.arguments['s']:
+                    ax4 = get_axis(len(self.sequences), plots)
 
-                ax3.set_xlabel('Time (seconds)')
-                ax3.set_ylabel('Velocity')
-                ax3.set_title(f'Sequence {idx+1}: velocity vs Time')
-                ax3.grid(True)
-                ax3.annotate(r'$v_{\text{end}}=$' + f'{round(velocity[-1],3)}', xy=(0.95, 0.05), xycoords='axes fraction',ha='right',va='bottom')
+                    for x in self.arguments['hx']:
+                        ax4.axvline(x=x, color='green', linestyle=':', linewidth=2)
 
+                    counter += 1
+                    #Plot 3
+                    ax4.step(timestamps, [abs(v) for v in velocity], where='post', linestyle='-', color='b')
+
+                    ax4.set_xlabel('Time (seconds)')
+                    ax4.set_ylabel('Speed')
+                    ax4.set_title(f'Sequence {idx+1}: Speed vs Time')
+                    ax4.grid(True)
+                    ax4.annotate(r'$s_{\text{end}}=$' + f'{round(velocity[-1],3)}', xy=(0.95, 0.05), xycoords='axes fraction',ha='right',va='bottom')
 
         fig.tight_layout()
         return fig
 
     def show(self):
         """Shows current Plot"""
+        #plt.savefig("plot.png")
         plt.show()
 
     def print_details(self):
@@ -253,8 +323,143 @@ class SpaceBall():
             print("\n")
         print("------------------------------------")
 
+    def BuildValidSequences(self, sequence, planets, ball, time):
+        L = []
+        L.append(sequence)
+        for planetname in planets.keys():
+            planet = self.planets[planetname]
+            t=-1
+            if ball.velocity != planet.velocity: 
+                t = self.time_of_collision(ball, planet)
+            if t >= time:
+                s_prime = sequence + [planetname]
+                planets_prime = copy.deepcopy(planets)
+                planets_prime[planetname] = planets_prime[planetname] - 1
+                if planets_prime[planetname] <= 0:
+                    planets_prime.pop(planetname, None)
+
+                ball_prime =  Ball(2*planet.velocity - ball.velocity, 2*planet.position - ball.position)
+            
+                L += self.BuildValidSequences(s_prime, planets_prime, ball_prime, t)
+        return L
+    
+    def getTotalVelocityPosTime(self, seq, ball):
+        even = [s for i,s in enumerate(seq) if i % 2 == 1]
+        odd = [s for i,s in enumerate(seq) if i % 2 == 0]
+
+        
+
+        vel = (sum([2*self.planets[s].velocity for s in even]) - sum([2*self.planets[s].velocity for s in odd]) + ball.velocity) * (-1)**len(seq)
+        pos = (sum([2*self.planets[s].position for s in even]) - sum([2*self.planets[s].position for s in odd]) + ball.position) * (-1)**len(seq)
+
+        if len(seq) == 0:
+            t = 0
+            return vel, pos, t
+
+        if len(seq) % 2 == 0:
+            l = even[-1]
+            even = even[:-1]
+        else:
+            l = odd[-1]
+            odd = odd[:-1]
+        
+        velt = (sum([2*self.planets[s].velocity for s in even]) - sum([2*self.planets[s].velocity for s in odd]) + ball.velocity) * (-1)**(len(seq)-1)
+        post = (sum([2*self.planets[s].position for s in even]) - sum([2*self.planets[s].position for s in odd]) + ball.position) * (-1)**(len(seq)-1)
+
+        t = -(self.planets[l].position-post)/(self.planets[l].velocity-velt)
+
+        return vel, pos, t
+       
+    def BuildSubShift(self):
+        sequence = self.sequences[0]
+        ball = self.original_ball
+
+        vel, pos, time = self.getTotalVelocityPosTime(sequence, ball)
+        R = set()
+        samelen = []
+        smallest = sequence
+        SN = []
+        planets = {} 
+        for s in sequence:
+            planets[s] = planets.get(s, 0) + 1
+        t = 0
+        L = self.BuildValidSequences(SN, planets, ball, t)
+        #print(L)
+        print(len([l for l in L if len(l) == len(sequence)]))
+        print(len(L))
+        for seq in L:
+            nvel, npos, ntime = self.getTotalVelocityPosTime(seq, ball)
+            if nvel == vel and npos == pos and time==ntime:
+                if len(sequence) == len(seq):
+                    samelen.append(seq)
+                R.add(str(seq))
+                if len(seq) < len(smallest):
+                    smallest = seq
+
+        print("Subshift: " + str(R))
+        print("same len: " + str(samelen))
+        print("NF:" + str(smallest))
+
+        return R   
+
     def form_normalform(self):
-        raise NotImplementedError
+        sequence = self.sequences[0]
+        planets = dict.fromkeys(set(sequence),0)
+        self.ball = self.original_ball
+        for idx, coll in enumerate(sequence):
+            planets[coll] += -1 if idx % 2 == 0 else 1
+        
+        print(self._rec_normalform(seq=[],planets=planets, time=0))
+
+    def _rec_normalform(self, seq, planets, time):
+        ##calculate velocity,position of seq:
+        total_velocity = 0
+        total_position = 0
+
+        for idx,col in enumerate(seq):
+            idx = idx + 1
+            if idx%2 == 0:
+                total_velocity += 2*self.planets[col].velocity
+                total_position += 2*self.planets[col].position
+            else:
+                total_velocity -= 2*self.planets[col].velocity
+                total_position -= 2*self.planets[col].position
+            print(f"TV: {total_velocity}")
+        
+        total_velocity += self.ball.velocity
+        total_position += self.ball.position
+
+        
+        if len(seq) % 2 == 1:
+            total_velocity *= -1
+            total_position *= -1
+        
+
+        #find possible continuations
+        pos_seqs = []
+        b = 0
+        for pl, amount in planets.items():
+            planet = self.planets[pl]
+            if abs(amount) > 0:
+                b = 1
+                #is it valid ?
+                print(f"{total_velocity}*t + {total_position}")
+                if (total_velocity-planet.velocity) == 0:
+                    n_time = -1
+                else:
+                    n_time = (planet.position-total_position)/(total_velocity-planet.velocity)
+                print(f"Seq: {seq}, ct: {time+self.epsilon}, {pl}: time: {n_time}")
+                if  n_time >= time + self.epsilon:
+                    n_planets = copy.deepcopy(planets)
+                    n_planets[pl] = abs(amount) - 1
+                    n_seq = copy.deepcopy(seq)
+                    n_seq.append(pl)
+                    pos_seqs.append(self._rec_normalform(n_seq, n_planets, n_time))
+        
+        if b==0:
+            return seq
+
+        return pos_seqs             
 
     def update_plot(self, canvas, fig):
         """Updates the plot in the UI"""
@@ -264,9 +469,6 @@ class SpaceBall():
             canvas_plot = FigureCanvasTkAgg(fig, master=canvas)
             canvas_plot.draw()
             canvas_plot.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)
-
-    
-
 
     def add_live_scene(self, path=None):
         """Tkinter interface with real-time plot update"""
@@ -358,12 +560,10 @@ class SpaceBall():
 
 
         if path is not None:
-            print("opening")
             with open(path,'r') as f:
                 text_box.insert(tk.END, "".join(f.readlines()))
             on_text_change()
             ui_plot()
-            print("closing")
 
 
         text_box.bind("<KeyRelease>", on_text_change)
@@ -381,12 +581,35 @@ class SpaceBall():
 
         plot_button = tk.Button(valid_planet_frame, text="show plot in plt", command=self.show)
         plot_button.pack(side=tk.RIGHT, fill=tk.X, padx=10, pady=5)
-        
+
+        nf_button = tk.Button(valid_planet_frame, text="NF", command=self.BuildSubShift)
+        nf_button.pack(side=tk.RIGHT, fill=tk.X, padx=10, pady=5)
 
         print_button = tk.Button(valid_planet_frame, text="Print Details", command=self.print_details)
         print_button.pack(side=tk.RIGHT, fill=tk.X, padx=10, pady=5)
 
         save_button = tk.Button(text_frame, text="Save", command=save_to_file)
         save_button.pack(fill=tk.X, padx=5, pady=5)
+
+        def on_toggle():
+            self.arguments['s'] = speed_check.get()
+            self.arguments['v'] = velocity_check.get()
+            self.arguments['d'] = distance_check.get()
+            self.arguments['r'] = reverse_check.get()
+
+        speed_check = tk.BooleanVar(value=self.arguments["s"]) 
+        velocity_check = tk.BooleanVar(value=self.arguments["v"]) 
+        distance_check = tk.BooleanVar(value=self.arguments["d"]) 
+        reverse_check = tk.BooleanVar(value=self.arguments["r"]) 
+
+        s_check = tk.Checkbutton(text_frame, text="Plot Speed", variable=speed_check, command=on_toggle)
+        s_check.pack(padx=20, pady=20, side=tk.LEFT)
+        v_check = tk.Checkbutton(text_frame, text="Plot Velocity", variable=velocity_check, command=on_toggle)
+        v_check.pack(padx=20, pady=20, side=tk.LEFT)
+        d_check = tk.Checkbutton(text_frame, text="Plot Distance", variable=distance_check, command=on_toggle)
+        d_check.pack(padx=20, pady=20, side=tk.LEFT)
+        r_check = tk.Checkbutton(text_frame, text="Reverse Plot", variable=reverse_check, command=on_toggle)
+        r_check.pack(padx=20, pady=20, side=tk.LEFT)
+
 
         root.mainloop()

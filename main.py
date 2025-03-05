@@ -7,10 +7,19 @@ from SpaceBalls import SpaceBall
 @click.argument('path', type=click.Path(dir_okay=True, readable=True))
 @click.option('-p', '--printd', is_flag=True, help="Flag for printing details (used when 'plot' mode is selected)")
 @click.option('-e', '--epsilon', type=float, help="time between collisions")
-def main(mode, path, printd, epsilon):
+@click.option('-s', '--speed', is_flag=True, help="plot speed")
+@click.option('-v', '--velocity', is_flag=True, help="plot velocity")
+@click.option('-d', '--distance', is_flag=True, help="plot distance traveled")
+@click.option('-r', '--reverse', is_flag=True, help="reverses Plot axis")
+@click.option('-my', '--maxy', type=float, help='maximum y displayed')
+@click.option('-x', '--highlightx', type=float, multiple=True, help='highlight x values')
+
+
+def main(mode, path, printd, epsilon, speed, velocity, distance, reverse, highlightx, maxy):
+    arguments = {'p': True, 's': speed, 'v': velocity, 'd': distance, 'r': reverse, 'hx': highlightx, 'my':maxy}
     if epsilon is None:
         epsilon = 0.0001
-    VM = SpaceBall(epsilon)
+    VM = SpaceBall(epsilon, arguments)
     if mode == 'editor':
         if not os.path.exists(path):
             click.echo("Path not found opening empty File.")
@@ -28,6 +37,7 @@ def main(mode, path, printd, epsilon):
 
             if printd:
                 VM.print_details()
+            
             
             VM.show()
 
