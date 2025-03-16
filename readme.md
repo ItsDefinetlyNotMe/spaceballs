@@ -27,6 +27,8 @@ To further specify the parameters for the plot there are the following parameter
 --highlightx, -x a repeatable argument that allows for the highlighting of x values in all plots.
 ```
 
+In this example the velocity and distance are also plotted and the axis of the Plot is reversed.
+Moreover, x=0.5 and x=1 are highlighted with a dotted green line. 
 ```
 Python main.py plot /scene/example.scene -r -v -d -x 0.5 -x 1 
 ```
