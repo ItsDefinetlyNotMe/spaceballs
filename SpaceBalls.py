@@ -4,6 +4,7 @@ from tkinter import scrolledtext
 from matplotlib.backends.backend_tkagg import FigureCanvasTkAgg
 from tkinter import filedialog
 import copy
+import random
 
 COLORS = ['b','g','r','c','m','y','k','w','blue','green','red','cyan','magenta','yellow','black','white','orange','purple','pink']
 
@@ -58,6 +59,26 @@ class SpaceBall():
         self.history = {}
         for seq in sequences:
             self.history[str(seq)] = [(ball.velocity, ball.position, 0)]
+
+    def random_scene(self, planet_amount, sequence_length):
+        self.ball = Ball(random.uniform(-30, 30), random.uniform(-30, 30))
+        self.original_ball = copy.deepcopy(self.ball)
+        self.planets = {}
+        self.history = {}
+        for i in range(planet_amount):
+            self.planets[f"P{i}"] = Planet(random.uniform(-40, 40), random.uniform(-40, 40))
+        
+        s = self.BuildValidSequences([], dict.fromkeys(list(self.planets.keys()), 3), self.ball, 0, same=False)
+        s = [es for es in s if len(es) ==  sequence_length]
+
+        if len(s) == 0:
+            return False
+        self.sequences = [s[-1]]
+        #print(s[-1])
+
+        for seq in self.sequences:
+            self.history[str(seq)] = [(self.ball.velocity, self.ball.position, 0)]
+        return True
 
     def parser(self, scene):
         """Parses .scene files
@@ -241,9 +262,12 @@ class SpaceBall():
                     ax1.grid(True)
                     ax1.annotate(r'$t_{\text{end}}=$' + f'{round(timestamps[-1],3)}', xy=(0.95, 0.05), xycoords='axes fraction',ha='right',va='bottom')
                     ax1.annotate(r'$p_{\text{end}}=$' + f'{round(pwt[-1],3)}', xy=(0.95, 0.00), xycoords='axes fraction',ha='right',va='bottom')
+
                     if self.arguments['my'] is not None:
                         ax1.set_ylim(top=self.arguments['my'])
-
+                    if self.arguments['ly'] is not None:
+                        ax1.set_ylim(bottom=self.arguments['ly'])
+                        
                 if self.arguments['d']:
                     ax2 = get_axis(len(self.sequences), plots)
                     
@@ -306,7 +330,6 @@ class SpaceBall():
 
     def show(self):
         """Shows current Plot"""
-        #plt.savefig("plot.png")
         plt.show()
 
     def print_details(self):
@@ -323,7 +346,7 @@ class SpaceBall():
             print("\n")
         print("------------------------------------")
 
-    def BuildValidSequences(self, sequence, planets, ball, time):
+    def BuildValidSequences(self, sequence, planets, ball, time, same=True):
         L = []
         L.append(sequence)
         for planetname in planets.keys():
@@ -333,6 +356,9 @@ class SpaceBall():
                 t = self.time_of_collision(ball, planet)
             if t >= time:
                 s_prime = sequence + [planetname]
+                if len(s_prime) > 1 and not same:
+                    if s_prime[-1] == s_prime[-2]:
+                        continue
                 planets_prime = copy.deepcopy(planets)
                 planets_prime[planetname] = planets_prime[planetname] - 1
                 if planets_prime[planetname] <= 0:
@@ -340,41 +366,96 @@ class SpaceBall():
 
                 ball_prime =  Ball(2*planet.velocity - ball.velocity, 2*planet.position - ball.position)
             
-                L += self.BuildValidSequences(s_prime, planets_prime, ball_prime, t)
+                L += self.BuildValidSequences(s_prime, planets_prime, ball_prime, t, same)
         return L
-    
-    def getTotalVelocityPosTime(self, seq, ball):
-        even = [s for i,s in enumerate(seq) if i % 2 == 1]
-        odd = [s for i,s in enumerate(seq) if i % 2 == 0]
 
+    def newAlgorithm(self):
+        seq = self.sequences[0]
+        self.play_sequence(seq)
+        time = self.history[str(seq)][-1][2]
+
+        L = [seq]
+
+        for n in range(len(seq)+1):
+            for i in range(len(seq)+1):
+                for j in range(i,len(seq)+1):
+                    if n >= i and n <= j:
+                        continue
+                    else:
+                        if n > j:
+                            s = seq[:i] + seq[j:n] + seq[i:j] + seq[n::]
+                            
+                        elif n < i:
+                            s = seq[:n] + seq[i:j] + seq[n:i] + seq[j::]
+
+
+                        t,_ = self.play_sequence(s)
+                        if t:
+                            if round(self.history[str(s)][-1][2],3)==round(time,3):
+                                L.append(s)
+        return L
+
+    def canShorten(self, sequences):
+        for seq in sequences:
+            for i in range(1, len(seq)):
+                if seq[i] == seq[i-1]:
+                    return True, seq
+        return False, None
+
+    def comparison(self):
+        seq = self.sequences[0]
+        _, bs = self.BuildSubShift()
+        nA = self.newAlgorithm()
+        c_nA , wor= self.canShorten(nA)
+        print(c_nA)
+        print(wor)
+        nB = []
+        for i in nA:
+            if i not in nB:
+                nB.append(i)
+        nA = nB
+
+        print(nA)
+        exit()
         
+        c_nA , wor= self.canShorten(nA)
+        c_bs, wor2 = self.canShorten(bs)
 
-        vel = (sum([2*self.planets[s].velocity for s in even]) - sum([2*self.planets[s].velocity for s in odd]) + ball.velocity) * (-1)**len(seq)
-        pos = (sum([2*self.planets[s].position for s in even]) - sum([2*self.planets[s].position for s in odd]) + ball.position) * (-1)**len(seq)
-
-        if len(seq) == 0:
-            t = 0
-            return vel, pos, t
-
-        if len(seq) % 2 == 0:
-            l = even[-1]
-            even = even[:-1]
-        else:
-            l = odd[-1]
-            odd = odd[:-1]
+        if not (c_nA and c_bs):
+            if c_nA or c_bs:
+                if not c_nA:
+                    print("na")
+                    output = f"#new Algorithm fails: \nBall {self.original_ball.velocity} {self.original_ball.position}\n"
+                    output += "#Planets:\n"
+                    for p in self.planets:
+                        output += f"Planet {self.planets[p].velocity} {self.planets[p].position} {p}\n"
+                    output += f"#Normal\nSequence {','.join(self.sequences[0])} \n#NF\nSequence {','.join(wor2)}\n-------------\n"
+                    with open("NAF.txt", "a") as f:
+                        f.write(output)
+                elif not c_bs:
+                    print("bs")
+                    # Build output for file 2 (Subshift Algorithm fails)
+                    output = f"#Subshift Algorithm fails: \nBall {self.original_ball.velocity} {self.original_ball.position}\n"
+                    output += "#Planets:\n"
+                    for p in self.planets:
+                        output += f"Planet {self.planets[p].velocity} {self.planets[p].position} {p}\n"
+                    output += f"#Normal\nSequence {','.join(self.sequences[0])} \n#NF\nSequence {','.join(wor)}\n-------------\n"
+                    with open("SSF.txt", "a") as f:
+                        f.write(output)
         
-        velt = (sum([2*self.planets[s].velocity for s in even]) - sum([2*self.planets[s].velocity for s in odd]) + ball.velocity) * (-1)**(len(seq)-1)
-        post = (sum([2*self.planets[s].position for s in even]) - sum([2*self.planets[s].position for s in odd]) + ball.position) * (-1)**(len(seq)-1)
-
-        t = -(self.planets[l].position-post)/(self.planets[l].velocity-velt)
-
-        return vel, pos, t
-       
     def BuildSubShift(self):
         sequence = self.sequences[0]
         ball = self.original_ball
 
-        vel, pos, time = self.getTotalVelocityPosTime(sequence, ball)
+        #print(sequence)
+        valid, _ = self.play_sequence(sequence)
+        if not valid:
+            return [], []
+        else:
+            vel = self.history[str(sequence)][-1][0]
+            pos = self.history[str(sequence)][-1][1]
+            time = self.history[str(sequence)][-1][2]
+
         R = set()
         samelen = []
         smallest = sequence
@@ -382,25 +463,37 @@ class SpaceBall():
         planets = {} 
         for s in sequence:
             planets[s] = planets.get(s, 0) + 1
+        
         t = 0
         L = self.BuildValidSequences(SN, planets, ball, t)
+       
         #print(L)
-        print(len([l for l in L if len(l) == len(sequence)]))
-        print(len(L))
+        #print(len([l for l in L if len(l) == len(sequence)]))
+        #print(len(L))
+        L2 = []
         for seq in L:
-            nvel, npos, ntime = self.getTotalVelocityPosTime(seq, ball)
-            if nvel == vel and npos == pos and time==ntime:
+            valid, _ = self.play_sequence(seq)
+            if not valid:
+                print("Error")
+                exit()
+            else:
+                his = self.history[str(seq)][-1]
+                nvel = his[0]
+                npos = his[1]
+                ntime = his[2]
+            if round(nvel,3) == round(vel,3) and round(npos,3) == round(pos,3) and round(time,3)==round(ntime,3):
+                L2.append(seq)
                 if len(sequence) == len(seq):
                     samelen.append(seq)
                 R.add(str(seq))
                 if len(seq) < len(smallest):
                     smallest = seq
 
-        print("Subshift: " + str(R))
+        #print("Subshift: " + str(R))
         print("same len: " + str(samelen))
         print("NF:" + str(smallest))
 
-        return R   
+        return R, L2
 
     def form_normalform(self):
         sequence = self.sequences[0]
@@ -582,7 +675,7 @@ class SpaceBall():
         plot_button = tk.Button(valid_planet_frame, text="show plot in plt", command=self.show)
         plot_button.pack(side=tk.RIGHT, fill=tk.X, padx=10, pady=5)
 
-        nf_button = tk.Button(valid_planet_frame, text="NF", command=self.BuildSubShift)
+        nf_button = tk.Button(valid_planet_frame, text="NF", command=self.comparison)#self.BuildSubShift)
         nf_button.pack(side=tk.RIGHT, fill=tk.X, padx=10, pady=5)
 
         print_button = tk.Button(valid_planet_frame, text="Print Details", command=self.print_details)
@@ -610,6 +703,5 @@ class SpaceBall():
         d_check.pack(padx=20, pady=20, side=tk.LEFT)
         r_check = tk.Checkbutton(text_frame, text="Reverse Plot", variable=reverse_check, command=on_toggle)
         r_check.pack(padx=20, pady=20, side=tk.LEFT)
-
 
         root.mainloop()

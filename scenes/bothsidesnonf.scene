@@ -1,7 +1,0 @@
-Ball -1 0.5
-Planet 0 -1 P1
-Planet -1 1 PN
-Planet 2.5 1 PF
-Planet 2 40 PS
-Sequence P1,PN,P1,PS,PF,PS,PF,PS,PF,PS,PF,PS,PN,P1
-#Sequence PF,PN,PN,PS,PF,PS,PF,PS,P1,PS,P1,P1

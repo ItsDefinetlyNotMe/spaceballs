@@ -1,7 +1,0 @@
-Ball 1 1
-Planet 0 0 PN
-Planet -0.5 -0.5 PL
-Planet -1 1.5 PR1
-Planet -2 2 PR2
-Sequence PR1,PN,PR2,PL,PN,PL
-Sequence PR2,PL,PR1,PL

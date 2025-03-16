@@ -1,7 +1,0 @@
-#object velocity position (name)
-Ball -3 0
-Planet 1 -1 P1
-Planet 1 1 PN2
-Planet -1 6 PN1
-Planet 0 4 PN
-Sequence P1,PN1,PN2,PN1,PN2,PN1,PN2,PN1,PN2,PN1,PN2,PN1,PN2,PN1,PN2,PN1,PN2,PN1,PN2,PN1,PN2,PN1,PN2,PN1,PN2,PN1,PN2,PN1,PN2,PN1,PN2,PN1,PN2,PN1,P1,PN
