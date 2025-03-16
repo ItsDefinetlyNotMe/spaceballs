@@ -1,0 +1,7 @@
+#object velocity position (name)
+Ball 5.1 3
+Planet -1 4 P1
+Planet 1 -5.4 P2
+Planet 1 2 PN
+Sequence P1,PN,P1,P2,PN,P2
+Sequence P1,P2,P1,P2
