@@ -34,3 +34,19 @@ Python main.py plot /scene/example.scene -r -v -d -x 0.5 -x 1
 
 Furthermore the option -e allows for the setting of an epsilon that must be between collisions, this can be set to 0 to allow the ball to collide twice or more with the same planet at once.
 This can also be set to regulate float imprecision, which might allow for otherwise impossible collisions.
+
+The Scene format is build by specifying one object in each line.
+One can specify one ball, several planets and several sequences, it also allows for different coloring.
+For the colors all default colors from the matplotlib are available. 
+To define the ball or any Planet, it is required to specify the velocity and position separated with a space.
+For the Planet a name and the color can be added afterwards.
+A sequence is specified with the names of planets separated by commas.
+
+An example scene could look like this:
+```
+Ball 5.1 3
+Planet 2 4 P1 green
+Planet 10.3 -5.4 P2 orange
+Sequence P1,P2,P1,P2
+Sequence P1,P2,P1
+```
