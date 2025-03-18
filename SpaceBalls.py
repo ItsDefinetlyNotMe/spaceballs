@@ -74,7 +74,6 @@ class SpaceBall():
         if len(s) == 0:
             return False
         self.sequences = [s[-1]]
-        #print(s[-1])
 
         for seq in self.sequences:
             self.history[str(seq)] = [(self.ball.velocity, self.ball.position, 0)]
@@ -218,7 +217,6 @@ class SpaceBall():
             else:
                 return axes[counter, idx]
             
-
         plots = [self.arguments['p'], self.arguments['d'], self.arguments['s'], self.arguments['v']].count(True)
         if self.arguments['r']:
             fig, axes = plt.subplots(len(self.sequences), plots, figsize=(5*plots, 5*len(self.sequences)))
@@ -334,6 +332,18 @@ class SpaceBall():
 
     def print_details(self):
         """prints History of all sequences in terminal"""
+        for seq in self.sequences:
+            history = self.history[str(seq)]
+            print(f"Sequence: {','.join(seq)}")
+            h1 = history[0]
+            history = history[1::]
+            print(f"Initial condition: {h1[0]}*t + {h1[1]}")
+            for col, ball_information in zip(seq,history):
+                b_v, b_p, b_t = ball_information
+                print(f"Collision with: {col}:\n\ttime: {b_t}\n\tball representation: {b_v}*t + {b_p}\n\tposition of collision: {b_v*b_t + b_p}")
+            print("\n")
+        print("------------------------------------")
+        return   
         for key, history in self.history.items():
             print(f"Sequence: {key}")
             seq = key[1:-1:].split(',')
@@ -368,192 +378,54 @@ class SpaceBall():
             
                 L += self.BuildValidSequences(s_prime, planets_prime, ball_prime, t, same)
         return L
-
-    def newAlgorithm(self):
-        seq = self.sequences[0]
-        self.play_sequence(seq)
-        time = self.history[str(seq)][-1][2]
-
-        L = [seq]
-
-        for n in range(len(seq)+1):
-            for i in range(len(seq)+1):
-                for j in range(i,len(seq)+1):
-                    if n >= i and n <= j:
-                        continue
-                    else:
-                        if n > j:
-                            s = seq[:i] + seq[j:n] + seq[i:j] + seq[n::]
-                            
-                        elif n < i:
-                            s = seq[:n] + seq[i:j] + seq[n:i] + seq[j::]
-
-
-                        t,_ = self.play_sequence(s)
-                        if t:
-                            if round(self.history[str(s)][-1][2],3)==round(time,3):
-                                L.append(s)
-        return L
-
-    def canShorten(self, sequences):
-        for seq in sequences:
-            for i in range(1, len(seq)):
-                if seq[i] == seq[i-1]:
-                    return True, seq
-        return False, None
-
-    def comparison(self):
-        seq = self.sequences[0]
-        _, bs = self.BuildSubShift()
-        nA = self.newAlgorithm()
-        c_nA , wor= self.canShorten(nA)
-        print(c_nA)
-        print(wor)
-        nB = []
-        for i in nA:
-            if i not in nB:
-                nB.append(i)
-        nA = nB
-
-        print(nA)
-        exit()
         
-        c_nA , wor= self.canShorten(nA)
-        c_bs, wor2 = self.canShorten(bs)
+    def BuildValidPermutation(self):
+        for sequence in self.sequences:
+            ball = self.original_ball
 
-        if not (c_nA and c_bs):
-            if c_nA or c_bs:
-                if not c_nA:
-                    print("na")
-                    output = f"#new Algorithm fails: \nBall {self.original_ball.velocity} {self.original_ball.position}\n"
-                    output += "#Planets:\n"
-                    for p in self.planets:
-                        output += f"Planet {self.planets[p].velocity} {self.planets[p].position} {p}\n"
-                    output += f"#Normal\nSequence {','.join(self.sequences[0])} \n#NF\nSequence {','.join(wor2)}\n-------------\n"
-                    with open("NAF.txt", "a") as f:
-                        f.write(output)
-                elif not c_bs:
-                    print("bs")
-                    # Build output for file 2 (Subshift Algorithm fails)
-                    output = f"#Subshift Algorithm fails: \nBall {self.original_ball.velocity} {self.original_ball.position}\n"
-                    output += "#Planets:\n"
-                    for p in self.planets:
-                        output += f"Planet {self.planets[p].velocity} {self.planets[p].position} {p}\n"
-                    output += f"#Normal\nSequence {','.join(self.sequences[0])} \n#NF\nSequence {','.join(wor)}\n-------------\n"
-                    with open("SSF.txt", "a") as f:
-                        f.write(output)
-        
-    def BuildSubShift(self):
-        sequence = self.sequences[0]
-        ball = self.original_ball
-
-        #print(sequence)
-        valid, _ = self.play_sequence(sequence)
-        if not valid:
-            return [], []
-        else:
-            vel = self.history[str(sequence)][-1][0]
-            pos = self.history[str(sequence)][-1][1]
-            time = self.history[str(sequence)][-1][2]
-
-        R = set()
-        samelen = []
-        smallest = sequence
-        SN = []
-        planets = {} 
-        for s in sequence:
-            planets[s] = planets.get(s, 0) + 1
-        
-        t = 0
-        L = self.BuildValidSequences(SN, planets, ball, t)
-       
-        #print(L)
-        #print(len([l for l in L if len(l) == len(sequence)]))
-        #print(len(L))
-        L2 = []
-        for seq in L:
-            valid, _ = self.play_sequence(seq)
+            valid, _ = self.play_sequence(sequence)
             if not valid:
-                print("Error")
-                exit()
+                return [], []
             else:
-                his = self.history[str(seq)][-1]
-                nvel = his[0]
-                npos = his[1]
-                ntime = his[2]
-            if round(nvel,3) == round(vel,3) and round(npos,3) == round(pos,3) and round(time,3)==round(ntime,3):
-                L2.append(seq)
-                if len(sequence) == len(seq):
-                    samelen.append(seq)
-                R.add(str(seq))
-                if len(seq) < len(smallest):
-                    smallest = seq
+                vel = self.history[str(sequence)][-1][0]
+                pos = self.history[str(sequence)][-1][1]
+                time = self.history[str(sequence)][-1][2]
 
-        #print("Subshift: " + str(R))
-        print("same len: " + str(samelen))
-        print("NF:" + str(smallest))
-
-        return R, L2
-
-    def form_normalform(self):
-        sequence = self.sequences[0]
-        planets = dict.fromkeys(set(sequence),0)
-        self.ball = self.original_ball
-        for idx, coll in enumerate(sequence):
-            planets[coll] += -1 if idx % 2 == 0 else 1
+            R = set()
+            samelen = []
+            smallest = sequence
+            SN = []
+            planets = {} 
+            for s in sequence:
+                planets[s] = planets.get(s, 0) + 1
+            
+            t = 0
+            L = self.BuildValidSequences(SN, planets, ball, t)
         
-        print(self._rec_normalform(seq=[],planets=planets, time=0))
-
-    def _rec_normalform(self, seq, planets, time):
-        ##calculate velocity,position of seq:
-        total_velocity = 0
-        total_position = 0
-
-        for idx,col in enumerate(seq):
-            idx = idx + 1
-            if idx%2 == 0:
-                total_velocity += 2*self.planets[col].velocity
-                total_position += 2*self.planets[col].position
-            else:
-                total_velocity -= 2*self.planets[col].velocity
-                total_position -= 2*self.planets[col].position
-            print(f"TV: {total_velocity}")
-        
-        total_velocity += self.ball.velocity
-        total_position += self.ball.position
-
-        
-        if len(seq) % 2 == 1:
-            total_velocity *= -1
-            total_position *= -1
-        
-
-        #find possible continuations
-        pos_seqs = []
-        b = 0
-        for pl, amount in planets.items():
-            planet = self.planets[pl]
-            if abs(amount) > 0:
-                b = 1
-                #is it valid ?
-                print(f"{total_velocity}*t + {total_position}")
-                if (total_velocity-planet.velocity) == 0:
-                    n_time = -1
+            L2 = []
+            for seq in L:
+                valid, _ = self.play_sequence(seq)
+                if not valid:
+                    print("Error")
+                    exit()
                 else:
-                    n_time = (planet.position-total_position)/(total_velocity-planet.velocity)
-                print(f"Seq: {seq}, ct: {time+self.epsilon}, {pl}: time: {n_time}")
-                if  n_time >= time + self.epsilon:
-                    n_planets = copy.deepcopy(planets)
-                    n_planets[pl] = abs(amount) - 1
-                    n_seq = copy.deepcopy(seq)
-                    n_seq.append(pl)
-                    pos_seqs.append(self._rec_normalform(n_seq, n_planets, n_time))
-        
-        if b==0:
-            return seq
-
-        return pos_seqs             
-
+                    his = self.history[str(seq)][-1]
+                    nvel = his[0]
+                    npos = his[1]
+                    ntime = his[2]
+                if round(nvel,3) == round(vel,3) and round(npos,3) == round(pos,3) and round(time,3)==round(ntime,3):
+                    L2.append(seq)
+                    if len(sequence) == len(seq):
+                        samelen.append(seq)
+                    R.add(str(seq))
+                    if len(seq) < len(smallest):
+                        smallest = seq
+            print("Sequence: " + ",".join(sequence))
+            print("Valid Permutations: " + str(R))
+            print("same len: " + str([','.join(sl) for sl in samelen]))
+            print("NF: " + ','.join(smallest))
+            print("------------------------------------")
+     
     def update_plot(self, canvas, fig):
         """Updates the plot in the UI"""
         for widget in canvas.winfo_children():
@@ -675,7 +547,7 @@ class SpaceBall():
         plot_button = tk.Button(valid_planet_frame, text="show plot in plt", command=self.show)
         plot_button.pack(side=tk.RIGHT, fill=tk.X, padx=10, pady=5)
 
-        nf_button = tk.Button(valid_planet_frame, text="NF", command=self.comparison)#self.BuildSubShift)
+        nf_button = tk.Button(valid_planet_frame, text="NF", command=self.BuildValidPermutation)
         nf_button.pack(side=tk.RIGHT, fill=tk.X, padx=10, pady=5)
 
         print_button = tk.Button(valid_planet_frame, text="Print Details", command=self.print_details)

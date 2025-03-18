@@ -3,7 +3,7 @@ import os
 from SpaceBalls import SpaceBall
 
 @click.command()
-@click.argument('mode', type=click.Choice(['editor', 'plot', 'random'], case_sensitive=False))
+@click.argument('mode', type=click.Choice(['editor', 'plot'], case_sensitive=False))
 @click.argument('path', type=click.Path(dir_okay=True, readable=True))
 @click.option('-p', '--printd', is_flag=True, help="Flag for printing details (used when 'plot' mode is selected)")
 @click.option('-e', '--epsilon', type=float, help="time between collisions")
@@ -40,11 +40,7 @@ def main(mode, path, printd, epsilon, speed, velocity, distance, reverse, highli
                 VM.print_details()
 
             VM.show()
-    elif mode == 'random':
-        for i in range(3000):
-            if VM.random_scene(6,10):
-                print(i, end="\r")
-                VM.comparison()
+            
 
 
 
